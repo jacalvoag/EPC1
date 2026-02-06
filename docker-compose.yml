@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: cafeteria_db
     environment:
-      POSTGRES_DB: cafeteria_up
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ajstyles2006
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -15,8 +15,9 @@ services:
       - ./db/indexes.sql:/docker-entrypoint-initdb.d/03-indexes.sql
       - ./db/roles.sql:/docker-entrypoint-initdb.d/04-roles.sql
       - ./db/seed.sql:/docker-entrypoint-initdb.d/05-seed.sql
+      - ./db/migrate.sql:/docker-entrypoint-initdb.d/06-migrate.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d cafeteria_up"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${DB_NAME}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -29,9 +30,9 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: cafeteria_up
-      DB_USER: postgres
-      DB_PASSWORD: ajstyles2006
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${APP_DB_USER}
+      DB_PASSWORD: ${APP_DB_PASSWORD}
     ports:
       - "3000:3000"
     depends_on:
