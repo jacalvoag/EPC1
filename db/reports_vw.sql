@@ -1,4 +1,10 @@
---  Sales daily
+-- VISTA: vw_sales_daily
+-- Descripción: Resumen de ventas agregado por día
+-- Grano: Una fila por fecha (sale_date)
+-- Métricas: total_ventas (SUM), total_tickets (COUNT), ticket_promedio (ratio)
+-- Verificación:
+--   SELECT * FROM vw_sales_daily ORDER BY sale_date DESC LIMIT 5;
+--   SELECT SUM(total_ventas) AS ventas_totales FROM vw_sales_daily;
 CREATE VIEW vw_sales_daily AS
 SELECT 
     created_at::DATE AS sale_date,
@@ -11,7 +17,13 @@ WHERE o.status = 'completed'
 GROUP BY created_at::DATE
 HAVING COUNT(DISTINCT o.id) > 0;
 
---  Top products ranked
+-- VISTA: vw_top_products_ranked
+-- Descripción: Ranking de productos por ingresos usando Window Function
+-- Grano: Una fila por producto
+-- Métricas: unidades_vendidas (SUM), ingresos_totales (SUM), ranking (DENSE_RANK)
+-- Verificación:
+--   SELECT * FROM vw_top_products_ranked ORDER BY ranking_ingresos LIMIT 10;
+--   SELECT * FROM vw_top_products_ranked WHERE producto ILIKE '%café%';
 CREATE VIEW vw_top_products_ranked AS
 SELECT 
     p.name AS producto,
@@ -24,7 +36,13 @@ JOIN categories c ON p.category_id = c.id
 JOIN order_items oi ON p.id = oi.product_id
 GROUP BY p.name, c.name;
 
---  Inventory risk
+-- VISTA: vw_inventory_risk
+-- Descripción: Identificación de productos con stock bajo y estado de riesgo
+-- Grano: Una fila por producto activo
+-- Métricas: stock_actual, estado_stock (CASE), ratio_disponibilidad (ratio)
+-- Verificación:
+--   SELECT * FROM vw_inventory_risk WHERE estado_stock = 'Riesgo Crítico';
+--   SELECT categoria, COUNT(*) FROM vw_inventory_risk GROUP BY categoria;
 CREATE VIEW vw_inventory_risk AS
 SELECT 
     p.name AS producto,
@@ -41,7 +59,13 @@ FROM products p
 LEFT JOIN categories c ON p.category_id = c.id
 WHERE p.active = true;
 
---  Customer Value
+-- VISTA: vw_customer_value
+-- Descripción: Análisis de valor por cliente usando CTE
+-- Grano: Una fila por cliente con órdenes
+-- Métricas: total_gastado (SUM), num_ordenes (COUNT), gasto_promedio (ratio)
+-- Verificación:
+--   SELECT * FROM vw_customer_value ORDER BY total_gastado DESC LIMIT 10;
+--   SELECT AVG(gasto_promedio) FROM vw_customer_value;
 CREATE VIEW vw_customer_value AS
 WITH customer_stats AS (
     SELECT 
@@ -64,7 +88,13 @@ WHERE num_ordenes > 0
 GROUP BY name, total_gastado, num_ordenes
 HAVING SUM(total_gastado) > 50;
 
---  Payment Mix
+-- VISTA: vw_payment_mix
+-- Descripción: Distribución de pagos por método usando Window Function
+-- Grano: Una fila por método de pago
+-- Métricas: total_transacciones (COUNT), monto_acumulado (SUM), porcentaje (Window)
+-- Verificación:
+--   SELECT * FROM vw_payment_mix ORDER BY monto_acumulado DESC;
+--   SELECT SUM(porcentaje_popularidad) FROM vw_payment_mix; -- Debe ser 100
 CREATE VIEW vw_payment_mix AS
 SELECT 
     method AS metodo_pago,
@@ -74,9 +104,13 @@ SELECT
 FROM payments
 GROUP BY method;
 
---  Views añadidas
-
---  Channel performance
+-- VISTA: vw_channel_performance (BONUS)
+-- Descripción: Rendimiento por canal de venta
+-- Grano: Una fila por canal (Mostrador, App, Delivery)
+-- Métricas: total_pedidos (COUNT), ingresos_totales (SUM), porcentaje_ingresos (Window)
+-- Verificación:
+--   SELECT * FROM vw_channel_performance ORDER BY ingresos_totales DESC;
+--   SELECT SUM(porcentaje_ingresos) FROM vw_channel_performance; -- Debe ser 100
 CREATE VIEW vw_channel_performance AS
 SELECT 
     o.channel AS canal_venta,
