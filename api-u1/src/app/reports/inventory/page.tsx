@@ -1,73 +1,60 @@
+import Link from 'next/link';
 import { query } from '@/lib/db';
-import { z } from 'zod';
-
-const InventoryFilterSchema = z.object({
-  category_id: z.string().optional().default(''),
-});
 
 interface InventoryRow {
   producto: string;
   stock_actual: number;
   categoria: string;
   estado_stock: string;
-  ratio_disponibilidad: number;
 }
 
-export default async function InventoryRiskPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  const { category_id } = InventoryFilterSchema.parse(searchParams);
-
+export default async function InventoryPage() {
   const sql = `
-    SELECT producto, stock_actual, categoria, estado_stock, ratio_disponibilidad
+    SELECT producto, stock_actual, categoria, estado_stock
     FROM vw_inventory_risk
-    WHERE ($1 = '' OR categoria = $1)
     ORDER BY stock_actual ASC
   `;
-  
-  const { rows } = await query<InventoryRow>(sql, [category_id]);
 
-  const itemsEnRiesgo = rows.filter(r => r.estado_stock === 'Riesgo Crítico' || r.estado_stock === 'Agotado').length;
+  const { rows } = await query<InventoryRow>(sql);
+  const criticos = rows.filter(r => r.estado_stock === 'Riesgo Crítico' || r.estado_stock === 'Agotado').length;
+
+  const getBadgeClass = (estado: string) => {
+    if (estado === 'Saludable') return 'badge badge-success';
+    if (estado === 'Riesgo Bajo') return 'badge badge-warning';
+    return 'badge badge-danger';
+  };
 
   return (
-    <div className="p-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold">Inventario en Riesgo</h1>
-        <p className="text-gray-600">Insight: Productos o categorías con stock bajo y porcentaje en riesgo.</p>
-      </header>
+    <div className="container">
+      <Link href="/" className="back-link">← Volver al inicio</Link>
 
-      <div className="mb-8 p-4 bg-red-50 border-l-4 border-red-500 rounded shadow-sm">
-        <span className="text-sm font-medium text-red-700 uppercase">Alertas Críticas</span>
-        <p className="text-2xl font-bold text-red-900">{itemsEnRiesgo} productos requieren reabastecimiento</p>
+      <h1 className="page-title">Inventario</h1>
+      <p className="page-subtitle">Estado del stock de productos</p>
+
+      <div style={{ margin: '1.5rem 0' }}>
+        <div className="kpi-card" style={{ maxWidth: '300px', borderColor: 'var(--danger)', background: 'var(--danger-light)' }}>
+          <div className="kpi-label" style={{ color: 'var(--danger)' }}>Productos en Riesgo</div>
+          <div className="kpi-value">{criticos}</div>
+        </div>
       </div>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-100 border-b">
+      <div className="table-container">
+        <table className="simple-table">
+          <thead>
             <tr>
-              <th className="p-4">Producto</th>
-              <th className="p-4">Categoría</th>
-              <th className="p-4">Stock</th>
-              <th className="p-4">Estado</th>
+              <th>Producto</th>
+              <th>Categoría</th>
+              <th>Stock</th>
+              <th>Estado</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => (
-              <tr key={i} className="border-b hover:bg-gray-50">
-                <td className="p-4 font-medium">{row.producto}</td>
-                <td className="p-4">{row.categoria}</td>
-                <td className="p-4">{row.stock_actual}</td>
-                <td className="p-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    row.estado_stock === 'Saludable' ? 'bg-green-100 text-green-700' :
-                    row.estado_stock === 'Riesgo Bajo' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>
-                    {row.estado_stock.toUpperCase()}
-                  </span>
-                </td>
+              <tr key={i}>
+                <td>{row.producto}</td>
+                <td>{row.categoria}</td>
+                <td>{row.stock_actual}</td>
+                <td><span className={getBadgeClass(row.estado_stock)}>{row.estado_stock}</span></td>
               </tr>
             ))}
           </tbody>
