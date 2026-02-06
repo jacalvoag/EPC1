@@ -8,33 +8,46 @@ Dashboard de reportes para una cafetería del campus. Visualiza ventas, producto
 - **Base de datos**: PostgreSQL 16
 - **Contenedores**: Docker Compose
 
-## Levantar el proyecto
+---
 
-### 1. Configurar variables de entorno
+## Instalación y ejecución
+
+### Paso 1: Clonar el repositorio
+
+```bash
+git clone https://github.com/jacalvoag/EPC1.git
+cd EPC1
+```
+
+### Paso 2: Crear archivo de variables de entorno
 
 ```bash
 cp .env.example .env
 ```
 
-Edita `.env` con tus credenciales:
+Edita `.env` con tus credenciales (o usa los valores por defecto):
 
 ```env
 DB_NAME=cafeteria_up
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=tu_password_seguro
 APP_DB_USER=app
-APP_DB_PASSWORD=tu_password_app
+APP_DB_PASSWORD=cafeteria_secure_pass
 ```
 
-### 2. Levantar con Docker
+### Paso 3: Levantar con Docker
 
 ```bash
 docker compose up --build
 ```
 
-La aplicación estará disponible en: **http://localhost:3000**
+### Paso 4: Abrir la aplicación
 
-### 3. Scripts ejecutados automáticamente
+Abre en tu navegador: **http://localhost:3000**
+
+---
+
+## Scripts ejecutados automáticamente
 
 Al iniciar el contenedor de PostgreSQL, se ejecutan en orden:
 1. `schema.sql` - Crea las 6 tablas
@@ -119,7 +132,7 @@ La aplicación se conecta como usuario `app`, NO como `postgres`.
 Conectar como usuario `app`:
 
 ```bash
-psql -h localhost -U app -d cafeteria_up
+docker exec -it cafeteria_db psql -U app -d cafeteria_up
 ```
 
 **Prueba 1: Acceso a VIEWS (debe funcionar)**
@@ -162,6 +175,22 @@ SELECT * FROM products LIMIT 1;
     ├── roles.sql              # Usuario app
     ├── seed.sql               # Datos de prueba
     └── migrate.sql            # Verificaciones
+```
+
+---
+
+## Comandos útiles
+
+```bash
+# Detener contenedores
+docker compose down
+
+# Reiniciar con datos limpios
+docker compose down -v
+docker compose up --build
+
+# Ver logs
+docker compose logs -f
 ```
 
 ---
