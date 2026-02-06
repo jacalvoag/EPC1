@@ -12,8 +12,8 @@ export default function HomePage() {
   return (
     <div className="container">
       <header style={{ marginBottom: '2rem' }}>
-        <h1 className="page-title">Dashboard Cafetería</h1>
-        <p className="page-subtitle">Sistema de reportes y analítica</p>
+        <h1 className="page-title">Cafetería UP</h1>
+        <p className="page-subtitle">Actividad para la evaluación de la unidad 1</p>
       </header>
 
       <div className="report-grid">

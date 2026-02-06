@@ -25,12 +25,12 @@ cd EPC1
 cp .env.example .env
 ```
 
-Edita `.env` con tus credenciales (o usa los valores por defecto):
+El archivo `.env.example` ya contiene los valores correctos:
 
 ```env
 DB_NAME=cafeteria_up
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=tu_password_seguro
+POSTGRES_PASSWORD=tu_contraseña_gg
 APP_DB_USER=app
 APP_DB_PASSWORD=cafeteria_secure_pass
 ```
