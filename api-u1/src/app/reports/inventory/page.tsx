@@ -1,5 +1,15 @@
 import Link from 'next/link';
 import { query } from '@/lib/db';
+import { z } from 'zod';
+
+// Whitelist de categorías permitidas
+const ALLOWED_CATEGORIES = ['Café en Grano', 'Bebidas Calientes', 'Repostería', 'Métodos de Extracción', ''];
+
+const FilterSchema = z.object({
+  categoria: z.string().refine(val => ALLOWED_CATEGORIES.includes(val), {
+    message: 'Categoría no válida'
+  }).optional().default(''),
+});
 
 interface InventoryRow {
   producto: string;
@@ -8,14 +18,22 @@ interface InventoryRow {
   estado_stock: string;
 }
 
-export default async function InventoryPage() {
+export default async function InventoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = await searchParams;
+  const { categoria } = FilterSchema.parse(params);
+
   const sql = `
     SELECT producto, stock_actual, categoria, estado_stock
     FROM vw_inventory_risk
+    WHERE ($1 = '' OR categoria = $1)
     ORDER BY stock_actual ASC
   `;
 
-  const { rows } = await query<InventoryRow>(sql);
+  const { rows } = await query<InventoryRow>(sql, [categoria]);
   const criticos = rows.filter(r => r.estado_stock === 'Riesgo Crítico' || r.estado_stock === 'Agotado').length;
 
   const getBadgeClass = (estado: string) => {
@@ -31,7 +49,20 @@ export default async function InventoryPage() {
       <h1 className="page-title">Inventario</h1>
       <p className="page-subtitle">Estado del stock de productos</p>
 
-      <div style={{ margin: '1.5rem 0' }}>
+      <form className="filter-form" style={{ margin: '1.5rem 0', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div>
+          <label className="filter-label">Filtrar por Categoría</label>
+          <select name="categoria" defaultValue={categoria} className="filter-input">
+            <option value="">Todas las categorías</option>
+            {ALLOWED_CATEGORIES.filter(c => c !== '').map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" className="btn-primary">Filtrar</button>
+      </form>
+
+      <div style={{ marginBottom: '1.5rem' }}>
         <div className="kpi-card" style={{ maxWidth: '300px', borderColor: 'var(--danger)', background: 'var(--danger-light)' }}>
           <div className="kpi-label" style={{ color: 'var(--danger)' }}>Productos en Riesgo</div>
           <div className="kpi-value">{criticos}</div>
