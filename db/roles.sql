@@ -1,6 +1,6 @@
 -- Crear rol de aplicación (solo lectura sobre vistas)
--- NOTA: La contraseña se define aquí pero debe coincidir con APP_DB_PASSWORD en .env
-CREATE ROLE app WITH LOGIN PASSWORD 'tu_password_app_aqui';
+-- NOTA: La contraseña debe coincidir con APP_DB_PASSWORD en .env
+CREATE ROLE app WITH LOGIN PASSWORD 'cafeteria_secure_pass';
 
 -- Otorgar permiso de conexión
 GRANT CONNECT ON DATABASE cafeteria_up TO app;

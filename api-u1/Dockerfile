@@ -11,11 +11,8 @@ RUN npm ci
 # Copiar código fuente
 COPY . .
 
-# Build de producción
-RUN npm run build
-
 # Exponer puerto
 EXPOSE 3000
 
-# Iniciar en modo producción
-CMD ["npm", "start"]
+# Iniciar en modo desarrollo (evita pre-rendering de páginas dinámicas)
+CMD ["npm", "run", "dev"]
