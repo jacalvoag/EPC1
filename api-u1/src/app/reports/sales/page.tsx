@@ -1,17 +1,26 @@
 import Link from 'next/link';
-import { query } from '@/lib/db';
-import { z } from 'zod';
-
-const FilterSchema = z.object({
-  date_from: z.string().optional().transform(val => val && val.match(/^\d{4}-\d{2}-\d{2}$/) ? val : undefined),
-  date_to: z.string().optional().transform(val => val && val.match(/^\d{4}-\d{2}-\d{2}$/) ? val : undefined),
-});
 
 interface SalesRow {
-  sale_date: Date;
+  sale_date: string; // Dates from JSON are strings
   total_ventas: number;
   total_tickets: number;
   ticket_promedio: number;
+}
+
+async function getSalesData(date_from?: string, date_to?: string): Promise<SalesRow[]> {
+  const params = new URLSearchParams();
+  if (date_from) params.append('date_from', date_from);
+  if (date_to) params.append('date_to', date_to);
+
+  const res = await fetch(`http://localhost:3000/api/reports/sales?${params.toString()}`, {
+    cache: 'no-store', // Ensure fresh data
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch sales data');
+  }
+
+  return res.json();
 }
 
 export default async function SalesPage({
@@ -20,17 +29,10 @@ export default async function SalesPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const { date_from, date_to } = FilterSchema.parse(params);
+  const date_from = typeof params.date_from === 'string' ? params.date_from : undefined;
+  const date_to = typeof params.date_to === 'string' ? params.date_to : undefined;
 
-  const sql = `
-    SELECT sale_date, total_ventas, total_tickets, ticket_promedio 
-    FROM vw_sales_daily 
-    WHERE ($1::DATE IS NULL OR sale_date >= $1)
-      AND ($2::DATE IS NULL OR sale_date <= $2)
-    ORDER BY sale_date DESC
-  `;
-
-  const { rows } = await query<SalesRow>(sql, [date_from || null, date_to || null]);
+  const rows = await getSalesData(date_from, date_to);
   const total = rows.reduce((acc, r) => acc + Number(r.total_ventas), 0);
 
   return (
