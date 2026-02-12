@@ -1,12 +1,4 @@
 import Link from 'next/link';
-import { query } from '@/lib/db';
-import { z } from 'zod';
-
-const FilterSchema = z.object({
-  search: z.string().optional().default(''),
-  page: z.string().transform(Number).pipe(z.number().positive()).catch(1),
-  limit: z.string().transform(Number).pipe(z.number().positive().max(50)).catch(10),
-});
 
 interface ProductRow {
   producto: string;
@@ -16,24 +8,35 @@ interface ProductRow {
   ranking_ingresos: number;
 }
 
+async function getProductsData(search: string, page: number, limit: number): Promise<ProductRow[]> {
+  const params = new URLSearchParams({
+    search,
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  const res = await fetch(`http://localhost:3000/api/reports/products?${params.toString()}`, {
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch products data');
+  }
+
+  return res.json();
+}
+
 export default async function ProductsPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const { search, page, limit } = FilterSchema.parse(params);
-  const offset = (page - 1) * limit;
+  const search = typeof params.search === 'string' ? params.search : '';
+  const page = Number(params.page) || 1;
+  const limit = Number(params.limit) || 10;
 
-  const sql = `
-    SELECT producto, categoria, unidades_vendidas, ingresos_totales, ranking_ingresos
-    FROM vw_top_products_ranked
-    WHERE producto ILIKE $1
-    ORDER BY ranking_ingresos ASC
-    LIMIT $2 OFFSET $3
-  `;
-
-  const { rows } = await query<ProductRow>(sql, [`%${search}%`, limit, offset]);
+  const rows = await getProductsData(search, page, limit);
 
   return (
     <div className="container">
