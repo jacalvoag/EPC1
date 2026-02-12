@@ -1,15 +1,7 @@
 import Link from 'next/link';
-import { query } from '@/lib/db';
-import { z } from 'zod';
 
 // Whitelist de categorías permitidas
 const ALLOWED_CATEGORIES = ['Café en Grano', 'Bebidas Calientes', 'Repostería', 'Métodos de Extracción', ''];
-
-const FilterSchema = z.object({
-  categoria: z.string().refine(val => ALLOWED_CATEGORIES.includes(val), {
-    message: 'Categoría no válida'
-  }).optional().default(''),
-});
 
 interface InventoryRow {
   producto: string;
@@ -18,22 +10,32 @@ interface InventoryRow {
   estado_stock: string;
 }
 
+async function getInventoryData(categoria: string): Promise<InventoryRow[]> {
+  const params = new URLSearchParams();
+  if (categoria) params.append('categoria', categoria);
+
+  const res = await fetch(`http://localhost:3000/api/reports/inventory?${params.toString()}`, {
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch inventory data');
+  }
+
+  return res.json();
+}
+
 export default async function InventoryPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const { categoria } = FilterSchema.parse(params);
+  const categoria = typeof params.categoria === 'string' && ALLOWED_CATEGORIES.includes(params.categoria)
+    ? params.categoria
+    : '';
 
-  const sql = `
-    SELECT producto, stock_actual, categoria, estado_stock
-    FROM vw_inventory_risk
-    WHERE ($1 = '' OR categoria = $1)
-    ORDER BY stock_actual ASC
-  `;
-
-  const { rows } = await query<InventoryRow>(sql, [categoria]);
+  const rows = await getInventoryData(categoria);
   const criticos = rows.filter(r => r.estado_stock === 'Riesgo Crítico' || r.estado_stock === 'Agotado').length;
 
   const getBadgeClass = (estado: string) => {
