@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { query } from '@/lib/db';
 
 interface PaymentRow {
   metodo_pago: string;
@@ -8,14 +7,20 @@ interface PaymentRow {
   porcentaje_popularidad: number;
 }
 
-export default async function PaymentsPage() {
-  const sql = `
-    SELECT metodo_pago, total_transacciones, monto_acumulado, porcentaje_popularidad 
-    FROM vw_payment_mix
-    ORDER BY monto_acumulado DESC
-  `;
+async function getPaymentsData(): Promise<PaymentRow[]> {
+  const res = await fetch('http://localhost:3000/api/reports/payments', {
+    cache: 'no-store',
+  });
 
-  const { rows } = await query<PaymentRow>(sql);
+  if (!res.ok) {
+    throw new Error('Failed to fetch payments data');
+  }
+
+  return res.json();
+}
+
+export default async function PaymentsPage() {
+  const rows = await getPaymentsData();
 
   return (
     <div className="container">
