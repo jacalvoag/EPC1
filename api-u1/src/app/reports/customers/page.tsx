@@ -1,11 +1,4 @@
 import Link from 'next/link';
-import { query } from '@/lib/db';
-import { z } from 'zod';
-
-const PaginationSchema = z.object({
-  page: z.string().transform(Number).pipe(z.number().positive()).catch(1),
-  limit: z.string().transform(Number).pipe(z.number().positive().max(100)).catch(10),
-});
 
 interface CustomerRow {
   cliente: string;
@@ -14,23 +7,33 @@ interface CustomerRow {
   gasto_promedio: number;
 }
 
+async function getCustomersData(page: number, limit: number): Promise<CustomerRow[]> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  const res = await fetch(`http://localhost:3000/api/reports/customers?${params.toString()}`, {
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch customers data');
+  }
+
+  return res.json();
+}
+
 export default async function CustomersPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const { page, limit } = PaginationSchema.parse(params);
-  const offset = (page - 1) * limit;
+  const page = Number(params.page) || 1;
+  const limit = Number(params.limit) || 10;
 
-  const sql = `
-    SELECT cliente, total_gastado, num_ordenes, gasto_promedio 
-    FROM vw_customer_value 
-    ORDER BY total_gastado DESC 
-    LIMIT $1 OFFSET $2
-  `;
-
-  const { rows } = await query<CustomerRow>(sql, [limit, offset]);
+  const rows = await getCustomersData(page, limit);
 
   return (
     <div className="container">
